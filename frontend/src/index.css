@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+/* Custom Dark Scrollbar พร้อมกำหนดขอบเขตขนาดของ Thumb ไม่ให้เล็กหรือใหญ่เกินไป */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #131314;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3c4043;
+  border-radius: 9999px;
+  border: 2px solid #131314;
+  
+  /* 🟢 เทคนิคจำกัดความยาวของก้อน Scrollbar (Thumb) */
+  /* ไม่ให้สั้นจนเกินไปแม้แชทยาวมากๆ (บังคับให้มีความสูงอย่างน้อย 40px) */
+  min-height: 100px; 
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5f6368;
+}
