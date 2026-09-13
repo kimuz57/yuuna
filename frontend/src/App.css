@@ -1,0 +1,464 @@
+/* นำเข้าฟอนต์ Prompt จาก Google Fonts (วางไว้บรรทัดบนสุด) */
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+*, 
+*::before, 
+*::after, 
+html, 
+body, 
+#root, 
+input, 
+textarea, 
+button, 
+.message, 
+.message-content {
+  font-family: 'Kanit', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+/* =========================================
+   1. Reset Vite Defaults (ล้างค่าตัวจัดกึ่งกลางของ Vite)
+========================================= */
+html, body, #root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100vh !important;
+  max-width: 100% !important;
+  text-align: left !important; /* ล้างค่า text-align: center ตัวต้นเหตุ */
+  background-color: #212121 !important;
+  overflow: hidden;
+  box-sizing: border-box;
+  
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai", sans-serif;
+  font-family: 'Kanit', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  color: #ececec;
+}
+
+textarea, button, input {
+  font-family: 'Kanit', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* =========================================
+   2. App Layout
+========================================= */
+.app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: #212121;
+}
+
+/* =========================================
+   3. Sidebar
+========================================= */
+.sidebar {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #171717;
+  border-right: 1px solid #2c2c2c;
+  padding: 14px;
+  flex-shrink: 0;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+}
+
+.brand-avatar,
+.profile-avatar,
+.welcome-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  color: white;
+  font-weight: 700;
+}
+
+.brand-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 15px;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.brand-status {
+  margin-top: 2px;
+  color: #6ee7a0;
+  font-size: 11px;
+}
+
+.new-chat {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  background: #222222;
+  color: #eeeeee;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.new-chat:hover {
+  background: #2b2b2b;
+  border-color: #505050;
+}
+
+.sidebar-bottom {
+  border-top: 1px solid #292929;
+  padding-top: 12px;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border-radius: 10px;
+}
+
+.profile-avatar {
+  width: 34px;
+  height: 34px;
+  background: #333;
+  font-size: 13px;
+}
+
+.profile-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.profile-sub {
+  margin-top: 2px;
+  color: #777;
+  font-size: 11px;
+}
+
+/* =========================================
+   4. Main Area
+========================================= */
+.main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #212121;
+}
+
+.topbar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid #292929;
+  background: rgba(33, 33, 33, 0.88);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.model-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ddd;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6ee7a0;
+  box-shadow: 0 0 8px rgba(110, 231, 160, 0.6);
+}
+
+/* =========================================
+   5. Chat Area & Message Alignment
+========================================= */
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 24px 180px;
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+.chat::-webkit-scrollbar {
+  width: 6px;
+}
+.chat::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 10px;
+}
+
+/* Welcome Box */
+.welcome {
+  width: 100%;
+  max-width: 760px;
+  margin: 10vh auto 0;
+  text-align: center;
+}
+
+.welcome-avatar {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 24px;
+  font-size: 25px;
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.25);
+}
+
+.welcome h1 {
+  margin: 0;
+  color: #f2f2f2;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.welcome p {
+  margin: 12px 0 28px;
+  color: #858585;
+  font-size: 15px;
+}
+
+.suggestions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.suggestions button {
+  padding: 10px 14px;
+  border: 1px solid #363636;
+  border-radius: 10px;
+  background: #252525;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.suggestions button:hover {
+  background: #2d2d2d;
+  color: #ddd;
+  border-color: #4a4a4a;
+}
+
+/* Message Base */
+.message {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* AI Message Layout (ชิดซ้าย) */
+.message.ai {
+  justify-content: flex-start;
+}
+
+.message.ai .message-avatar {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+}
+
+.message.ai .message-content {
+  flex: 1;
+  color: #ececec;
+  font-size: 15px;
+  line-height: 1.7;
+  word-break: break-word;
+  text-align: left;
+}
+
+/* User Message Layout (ชิดขวา) */
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.user .message-avatar {
+  order: 2; /* รูปโปรไฟล์อยู่ขวาสุด */
+  background: #3a3a3a;
+}
+
+.message.user .message-content {
+  order: 1; /* ข้อความแมสเสจอยู่ซ้ายของรูปโปรไฟล์ */
+  background: #2f2f2f;
+  color: #f1f1f1;
+  padding: 10px 16px;
+  border-radius: 18px;
+  border-top-right-radius: 4px;
+  max-width: 80%;
+  text-align: left;
+}
+
+/* Markdown Styling Support */
+.message-content p {
+  margin: 0 0 10px 0;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content strong {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.message-content em {
+  font-style: italic;
+  color: #e0e0e0;
+}
+
+.message-content ul, .message-content ol {
+  margin: 8px 0 10px 20px;
+  padding: 0;
+}
+
+.message-content code {
+  background: #2a2a2a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  color: #e6c07b;
+}
+
+.message-content pre {
+  background: #1a1a1a;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.message-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+/* =========================================
+   6. Input Composer Area
+========================================= */
+.composer-wrapper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24px 20px 18px;
+  background: linear-gradient(to bottom, transparent, #212121 35%);
+  pointer-events: none;
+}
+
+.composer, .composer-hint {
+  pointer-events: auto;
+}
+
+.composer {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid #3a3a3a;
+  border-radius: 16px;
+  background: #2a2a2a;
+}
+
+.composer:focus-within {
+  border-color: #555;
+}
+
+textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 24px;
+  max-height: 180px;
+  resize: none;
+  overflow-y: auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #eee;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+textarea::placeholder {
+  color: #777;
+}
+
+.send-button {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: #eee;
+  color: #222;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.send-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.composer-hint {
+  max-width: 760px;
+  margin: 8px auto 0;
+  text-align: center;
+  color: #666;
+  font-size: 11px;
+}
