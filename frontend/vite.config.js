@@ -25,5 +25,6 @@ export default defineConfig({
         secure: false,
       },
     },
+    allowedHosts: ['yuuna.tcmg.me'],
   },
 })
