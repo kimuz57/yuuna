@@ -1,37 +1,34 @@
 package middleware
 
 import (
-	"strings"
 	"yuuna/config"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Protected เป็น Middleware ตรวจสอบ JWT Token จาก HttpOnly Cookie
+// Protected เป็น Middleware ตรวจสอบ Session JWT จาก HttpOnly Cookie เท่านั้น
+// สถานะล็อกอินถูกตัดสินใจโดยเซิร์ฟเวอร์เท่านั้น — ไม่เชื่อข้อมูลใด ๆ จาก localStorage ของฝั่ง Client
 func Protected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// 1. 🍪 ดึง Token จาก HttpOnly Cookie โดยตรง
+		// 1. 🍪 ดึง Token จาก HttpOnly Cookie (JavaScript ฝั่งผู้ใช้อ่านไม่ได้)
 		tokenString := c.Cookies("token")
 
-		// (เผื่อไว้) ถ้าหาใน Cookie ไม่เจอ ลองเช็คใน Header แบบ Bearer เผื่อมีบางจุดยังใช้แบบเก่า
-		if tokenString == "" {
-			authHeader := c.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
-			}
-		}
-
-		// ถ้ายังหาไม่เจอทั้งสองที่ แปลว่ายังไม่ได้ล็อกอิน
+		// ถ้าไม่มี Cookie แปลว่ายังไม่ได้ล็อกอิน
 		if tokenString == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Unauthorized: Missing token in cookie",
+				"error": "Unauthorized: Missing session cookie",
 			})
 		}
 
-		secret := config.GetEnv("JWT_SECRET", "super-secret-key")
+		secret := config.GetEnv("JWT_SECRET", "")
+		if secret == "" {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Server misconfiguration: JWT_SECRET is not set",
+			})
+		}
 
-		// Parse และ Validate Token
+		// 2. Parse และ Validate Token (บังคับ HMAC เท่านั้น ป้องกันการสลับ algorithm)
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fiber.ErrUnauthorized
@@ -45,7 +42,7 @@ func Protected() fiber.Handler {
 			})
 		}
 
-		// ดึงข้อมูล Claims ออกมา
+		// 3. ดึงข้อมูล Claims ออกมา
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -53,7 +50,7 @@ func Protected() fiber.Handler {
 			})
 		}
 
-		// ดึง user_id ไปใช้งานต่อใน Controller
+		// 4. ดึง user_id ไปใช้งานต่อใน Controller
 		if idFloat, ok := claims["user_id"].(float64); ok {
 			c.Locals("user_id", uint(idFloat))
 		} else {

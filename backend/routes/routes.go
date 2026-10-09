@@ -1,51 +1,45 @@
 package routes
 
 import (
-	"time"
 	"yuuna/controller"
 	"yuuna/middleware"
-	
+
 	"github.com/gofiber/fiber/v2"
 )
 
 // SetupRoutes จัดการลงทะเบียน Endpoint ทั้งหมดของแอปพลิเคชัน
 func SetupRoutes(app *fiber.App) {
 	// ==========================================
-	// Public Routes (ไม่ต้องใช้ Token)
+	// Public Routes (ไม่ต้องมี Session Cookie)
 	// ==========================================
 	app.Post("/api/guest/chat", controller.HandleGuestChat)
+
+	// Auth สาธารณะ: ล็อกอิน (verify Google token แล้วออก HttpOnly Cookie)
+	// และล็อกเอาต์ (ทำลาย HttpOnly Cookie) — ล็อกเอาต์ต้องเรียกได้เสมอ แม้ cookie หมดอายุ
 	app.Post("/api/auth/google", controller.GoogleLogin)
+	app.Post("/api/auth/logout", controller.Logout)
 
 	// ==========================================
-	// Protected Routes (ต้องยืนยันตัวตนด้วย JWT)
+	// Protected Routes (ต้องมี Session Cookie ที่ถูกต้อง)
 	// ==========================================
-	// ประกาศ Group แค่ครั้งเดียวพอครับ
+	// ทุกเส้นทางในกลุ่มนี้ถูกคุ้มครองด้วย middleware.Protected() ก่อนเสมอ
 	api := app.Group("/api", middleware.Protected())
 	{
+		// 🟢 0. ตรวจสอบสถานะล็อกอินจาก Cookie (คืน 401 ถ้าไม่ได้ล็อกอิน/หมดอายุ)
+		api.Get("/auth/me", controller.GetMe)
+
 		// 🟢 1. จัดการห้องแชท (Sidebar)
 		api.Get("/sessions", controller.GetSessions)
 
-		api.Put("/sessions/:id", controller.UpdateSession)     // หรือชื่อฟังก์ชันที่คุณตั้งใน controller
-		api.Delete("/sessions/:id", controller.DeleteSession) // หรือชื่อฟังก์ชันที่คุณตั้งใน controller
-		
+		api.Put("/sessions/:id", controller.UpdateSession)
+		api.Delete("/sessions/:id", controller.DeleteSession)
+
 		// 🟢 2. จัดการแชทและประวัติ
 		api.Post("/chat", controller.HandleChat)
 		api.Get("/history", controller.GetHistory)
 		api.Delete("/history", controller.ClearHistory)
 
-		// 🟢 3. จัดการเรื่อง Migrate ประวัติแชท (เอา Protected ออกเพราะ Group บังคับไปแล้ว)
+		// 🟢 3. จัดการเรื่อง Migrate ประวัติแชท
 		api.Post("/history/migrate", controller.MigrateHistory)
-
-		// 🟢 4. API ล็อกเอาต์ (ล้าง HttpOnly Cookie)
-		api.Post("/auth/logout", func(c *fiber.Ctx) error {
-			c.Cookie(&fiber.Cookie{
-				Name:     "jwt", // เปลี่ยนให้ตรงกับชื่อ Cookie ที่คุณตั้งไว้ตอน Login นะครับ
-				Value:    "",
-				Expires:  time.Now().Add(-time.Hour),
-				HTTPOnly: true,
-				SameSite: "Lax",
-			})
-			return c.JSON(fiber.Map{"message": "Logged out successfully"})
-		})
 	}
 }

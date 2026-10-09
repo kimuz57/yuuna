@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
-
 export default function Chat() {
   // ================= STATE =================
   const [messages, setMessages] = useState(() => {
@@ -70,15 +68,38 @@ export default function Chat() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  // เคลียร์สถานะล็อกอินเมื่อเซิร์ฟเวอร์ปฏิเสธ (401) — ไม่เชื่อ localStorage
+  const handleSessionExpired = () => {
+    setIsLoggedIn(false);
+    setUserProfile(null);
+    localStorage.removeItem("user"); // เคลียร์ค่าที่ค้างจากเวอร์ชันเก่า (ถ้ามี)
+    setSessions([]);
+    setActiveSessionId(null);
+  };
+
   useEffect(() => {
     const initializeAuthAndData = async () => {
-      const savedUser = localStorage.getItem("user");
-      if (savedUser) {
-        setIsLoggedIn(true);
-        setUserProfile(JSON.parse(savedUser));
-        await fetchSessionsAndRestore();
+      try {
+        // ตรวจสอบสถานะล็อกอินจริงกับเซิร์ฟเวอร์ทุกครั้งที่เปิดหน้าเว็บ
+        // ตัดสินใจจาก HttpOnly Cookie ฝั่ง Backend เท่านั้น ไม่เชื่อ localStorage
+        const res = await fetch(`/api/auth/me`, {
+          credentials: "include",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setIsLoggedIn(true);
+          setUserProfile(data.user);
+          await fetchSessionsAndRestore();
+        } else {
+          handleSessionExpired();
+        }
+      } catch (error) {
+        console.error("Session check failed:", error);
+        handleSessionExpired();
+      } finally {
+        setIsInitializing(false);
       }
-      setIsInitializing(false);
     };
 
     initializeAuthAndData();
@@ -88,11 +109,15 @@ export default function Chat() {
     if (!sessionId) return;
     try {
       const res = await fetch(
-        `${BACKEND_URL}/api/history?session_id=${sessionId}`,
+        `/api/history?session_id=${sessionId}`,
         {
           credentials: "include",
         },
       );
+      if (res.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (res.ok) {
         const history = await res.json();
         setMessages(history || []);
@@ -114,9 +139,13 @@ export default function Chat() {
 
   const fetchSessionsAndRestore = async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/sessions`, {
+      const res = await fetch(`/api/sessions`, {
         credentials: "include",
       });
+      if (res.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         const sessionList = data || [];
@@ -167,7 +196,7 @@ export default function Chat() {
     e.stopPropagation();
     if (!newSessionTitle.trim()) return;
     try {
-      const res = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
+      const res = await fetch(`/api/sessions/${sessionId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newSessionTitle }),
@@ -190,7 +219,7 @@ export default function Chat() {
     e.stopPropagation();
     if (!window.confirm("คุณต้องการลบประวัติการสนทนานี้ใช่หรือไม่?")) return;
     try {
-      const res = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
+      const res = await fetch(`/api/sessions/${sessionId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -207,13 +236,15 @@ export default function Chat() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${BACKEND_URL}/api/auth/logout`, {
+      await fetch(`/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
+      // ให้เซิร์ฟเวอร์เป็นฝั่งทำลาย HttpOnly Cookie (POST /api/auth/logout)
+      // และล้างสถานะฝั่ง UI เท่านั้น — ไม่มีการตัดสินใจจาก localStorage
       localStorage.removeItem("user");
       localStorage.removeItem("last_active_session_id");
       setIsLoggedIn(false);
@@ -255,8 +286,8 @@ export default function Chat() {
     }
 
     const endpoint = isLoggedIn
-      ? `${BACKEND_URL}/api/chat`
-      : `${BACKEND_URL}/api/guest/chat`;
+      ? `/api/chat`
+      : `/api/guest/chat`;
 
     const payload = isLoggedIn
       ? { message: textToSend, session_id: activeSessionId }
@@ -272,6 +303,14 @@ export default function Chat() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          // Session หมดอายุระหว่างใช้งาน — เคลียร์สถานะแล้วกลับสู่สถานะผู้เยี่ยมชม
+          handleSessionExpired();
+          setShowLoginPopup(true);
+          setMessages((prev) => prev.slice(0, -1));
+          setInput(textToSend);
+          return;
+        }
         if (res.status === 403 && errData.error === "QUOTA_EXCEEDED") {
           setShowLoginPopup(true);
           setIsTyping(false);
@@ -294,7 +333,7 @@ export default function Chat() {
         const { value, done } = await reader.read();
         if (done) {
           if (isLoggedIn && !activeSessionId) {
-            const sessRes = await fetch(`${BACKEND_URL}/api/sessions`, {
+            const sessRes = await fetch(`/api/sessions`, {
               credentials: "include",
             });
             if (sessRes.ok) {
@@ -391,7 +430,7 @@ export default function Chat() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+      const res = await fetch(`/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_token: credentialResponse.credential }),
@@ -401,15 +440,19 @@ export default function Chat() {
       const data = await res.json();
 
       if (res.ok && data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+        // รอผลยืนยันจาก Backend ก่อนอัปเดตสถานะ (เซิร์ฟเวอร์ออก HttpOnly Cookie แล้ว)
+        // ไม่เขียน user ลง localStorage — สถานะล็อกอินถูกเช็กผ่าน GET /api/auth/me เท่านั้น
         setUserProfile(data.user);
         setIsLoggedIn(true);
         setShowLoginPopup(false);
 
         localStorage.removeItem("guestHistory");
         localStorage.removeItem("messageCount");
+        setMessageCount(0);
 
         fetchSessionsAndRestore();
+      } else {
+        console.error("Login failed:", data.error || "Unknown error");
       }
     } catch (err) {
       console.error("Network error:", err);
