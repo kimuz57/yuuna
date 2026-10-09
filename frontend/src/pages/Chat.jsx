@@ -33,6 +33,7 @@ export default function Chat() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const chatEndRef = useRef(null);
+  const textareaRef = useRef(null);
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [newSessionTitle, setNewSessionTitle] = useState("");
   const [activeMenuSessionId, setActiveMenuSessionId] = useState(null);
@@ -67,6 +68,14 @@ export default function Chat() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // ปรับความสูงช่องพิมพ์อัตโนมัติตามเนื้อหา (สูงสุด 128px = max-h-32) แล้วเลื่อนดูได้
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [input]);
 
   // เคลียร์สถานะล็อกอินเมื่อเซิร์ฟเวอร์ปฏิเสธ (401) — ไม่เชื่อ localStorage
   const handleSessionExpired = () => {
@@ -993,13 +1002,20 @@ export default function Chat() {
         <footer className="p-4 pb-6 px-4 sm:px-6 bg-gradient-to-t from-[#131314] via-[#131314] to-transparent sticky bottom-0">
           <div className="max-w-5xl mx-auto px-1 sm:px-2">
             <div className="flex items-center bg-[#1e1f20] hover:bg-[#232426] focus-within:bg-[#1e1f20] border border-transparent focus-within:border-[#3c4043] rounded-full px-5 py-2 transition-all">
-              <input
-                type="text"
+              <textarea
+                ref={textareaRef}
+                rows={1}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.nativeEvent.isComposing) return;
+                    e.preventDefault();
+                    if (input.trim() && !isTyping) handleSend();
+                  }
+                }}
                 disabled={isTyping}
-                className="flex-1 bg-transparent py-2.5 outline-none text-[#e3e3e3] placeholder-[#8e918f] text-sm sm:text-[15px]"
+                className="flex-1 bg-transparent py-2.5 outline-none text-[#e3e3e3] placeholder-[#8e918f] text-sm sm:text-[15px] resize-none overflow-y-auto max-h-32 leading-relaxed"
                 placeholder={
                   isTyping
                     ? "Yuuna กำลังคิดอยู่นะคะ ❤️"
