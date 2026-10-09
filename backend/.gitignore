@@ -1,2 +1,8 @@
 .env
 .env.production
+
+# ใน .gitignore
+backend/main
+main
+server
+*.exe
