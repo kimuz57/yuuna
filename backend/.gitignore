@@ -1,8 +1,9 @@
 .env
 .env.production
 
-# ใน .gitignore
-backend/main
-main
+# Compiled binaries / build artifacts (ห้าม commit)
+/main
 server
 *.exe
+*.log
+/tmp/
